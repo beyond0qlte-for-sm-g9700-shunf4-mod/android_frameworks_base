@@ -17,6 +17,7 @@ package com.android.server.audio;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
@@ -60,6 +61,47 @@ import java.util.Set;
  * (non final for mocking/spying)
  */
 public class AudioDeviceInventory {
+
+    private int mFmRadioPath;
+
+    public void modSamsungUpdateFmRadioPath(int path) {
+        this.mFmRadioPath = path;
+    }
+
+    @SuppressLint("WrongConstant")
+    public boolean modSamsungCheckDeviceConnected(int devices) {
+        if ((devices & Integer.MIN_VALUE) == 0) {
+            synchronized (this.mDevicesLock) {
+                java.util.Iterator<DeviceInfo> it = this.mConnectedDevices.values().iterator();
+                while (it.hasNext()) {
+                    DeviceInfo di = it.next();
+                    boolean isConnected = di != null;
+                    if (isConnected) {
+                        if ((di.mDeviceType & Integer.MIN_VALUE) == 0) {
+                            if ((di.mDeviceType & devices) != 0) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                if (devices == 32768 && AudioSystem.getDeviceConnectionState(32768, "0") > 0) {
+                    return true;
+                }
+            }
+        } else {
+            synchronized (this.mDevicesLock) {
+                java.util.Iterator<DeviceInfo> it2 = this.mConnectedDevices.values().iterator();
+                while (it2.hasNext()) {
+                    DeviceInfo di2 = it2.next();
+                    boolean isConnected2 = di2 != null;
+                    if (isConnected2 && (di2.mDeviceType & Integer.MIN_VALUE) != 0 && (di2.mDeviceType & devices & Integer.MAX_VALUE) != 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
     private static final String TAG = "AS.AudioDeviceInventory";
 
@@ -1020,6 +1062,11 @@ public class AudioDeviceInventory {
         mApmConnectedDevices.remove(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP);
         // Remove A2DP routes as well
         setCurrentAudioRouteNameIfPossible(null, true /*fromA2dp*/);
+        if (!modSamsungCheckDeviceConnected(128) && com.samsung.android.feature.SemFloatingFeature.getInstance().getString("SEC_FLOATING_FEATURE_AUDIO_CONFIG_FMRADIO_EXTERNAL_DEVICE").contains("BT") && this.mFmRadioPath == 4) {
+            this.mDeviceBroker.modSamsungSetFmRadioPath(3);
+            return;
+        }
+
         mmi.record();
     }
 

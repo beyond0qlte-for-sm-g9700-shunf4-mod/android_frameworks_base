@@ -26,6 +26,8 @@ Do NOT include any apps that are updatable via Play Store!
 -->
 
 <config>
+  <hidden-api-whitelisted-app package="com.sec.android.app.fm.mod" />
+
   <hidden-api-whitelisted-app package="android.ext.services" />
   <hidden-api-whitelisted-app package="com.android.apps.tag" />
   <hidden-api-whitelisted-app package="com.android.basicsmsreceiver" />

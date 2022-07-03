@@ -46,6 +46,9 @@ import android.view.KeyEvent;
  * {@hide}
  */
 interface IAudioService {
+    void modSamsungSetRadioOutputPath(int i);
+    int modSamsungGetRadioOutputPath();
+
     // C++ and Java methods below.
 
     // WARNING: When methods are inserted or deleted in this section, the transaction IDs in

@@ -34,6 +34,7 @@ import android.Manifest;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.SuppressLint;
 import android.annotation.UserIdInt;
 import android.app.ActivityManager;
 import android.app.ActivityManagerInternal;
@@ -187,6 +188,113 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class AudioService extends IAudioService.Stub
         implements AccessibilityManager.TouchExplorationStateChangeListener,
             AccessibilityManager.AccessibilityServicesStateChangeListener {
+
+    public static final int MOD_RADIO_OUTPUT_PATH_IS_FMRADIO_ON = (1 << 18);
+
+    private int mForcedUseForFMRadio;
+
+    @Override
+    @SuppressLint("WrongConstant")
+    public void modSamsungSetRadioOutputPath(int path) {
+        if (!checkAudioSettingsPermission("setRadioOutputPath()")) {
+            return;
+        }
+
+        this.mStreamStates[3].mute(false);
+
+        Log.i("AudioService", "modSamsungSetRadioOutputPath: path = " + Integer.toHexString(path));
+
+        boolean isFMRadioOn = false;
+
+        if ((path & MOD_RADIO_OUTPUT_PATH_IS_FMRADIO_ON) != 0) {
+            path = path & ~MOD_RADIO_OUTPUT_PATH_IS_FMRADIO_ON;
+            isFMRadioOn = true;
+        }
+
+        if (isFMRadioOn) {
+            if (path == 0) {
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: setForceUse 0 (" + this.mForcedUseForFMRadio + ")");
+                AudioSystem.setForceUse(8, this.mForcedUseForFMRadio);
+                AudioSystem.setForceUse(1, this.mForcedUseForFMRadio);
+                AudioSystem.setParameters("device=a2dp;enable=" + (this.mForcedUseForFMRadio == 4 ? "true" : "false") + ";l_fmradio_external_key=");
+            } else if (path == 2) {
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: setForceUse 1");
+                AudioSystem.setForceUse(8, 1);
+                AudioSystem.setForceUse(1, 1);
+                AudioSystem.setParameters("device=a2dp;enable=false;l_fmradio_external_key=");
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: mForcedUseForFMRadio := 1");
+                this.mForcedUseForFMRadio = 1;
+            } else if (path == 8) {
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: setForceUse 4");
+                AudioSystem.setForceUse(8, 4);
+                AudioSystem.setForceUse(1, 4);
+                // AudioFMRadioManager::setFMRadioA2dp
+                AudioSystem.setParameters("device=a2dp;enable=true;l_fmradio_external_key=");
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: mForcedUseForFMRadio := 4");
+                this.mForcedUseForFMRadio = 4;
+            } else if (path == 3) {
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: setForceUse 0");
+                AudioSystem.setForceUse(8, 0);
+                AudioSystem.setForceUse(1, 0);
+                AudioSystem.setParameters("device=a2dp;enable=false;l_fmradio_external_key=");
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: mForcedUseForFMRadio := 0");
+                this.mForcedUseForFMRadio = 0;
+            } else {
+                Log.i(TAG, "FM radio app set wrong radio output path : " + path);
+                return;
+            }
+        } else {
+            Log.i("AudioService", "modSamsungSetRadioOutputPath: setForceUse 0 (FMRadio off)");
+            AudioSystem.setForceUse(8, 0);
+            AudioSystem.setForceUse(1, 0);
+
+            if (path == 0) {
+                
+            } else if (path == 2) {
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: mForcedUseForFMRadio := 1");
+                this.mForcedUseForFMRadio = 1;
+            } else if (path == 8) {
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: mForcedUseForFMRadio := 4");
+                this.mForcedUseForFMRadio = 4;
+            } else if (path == 3) {
+                Log.i("AudioService", "modSamsungSetRadioOutputPath: mForcedUseForFMRadio := 0");
+                this.mForcedUseForFMRadio = 0;
+            } else {
+                Log.i(TAG, "FM radio app set wrong radio output path : " + path);
+                return;
+            }
+        }
+
+        if (isFMRadioOn) {
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    Log.i("AudioService", "modSamsungSetRadioOutputPath: delayed unmute FM and set volume");
+                    AudioSystem.setParameters("g_fmradio_mute=false");
+                    AudioSystem.setParameters("l_fmradio_volume=0.1");
+                }
+            }, 500);
+        }
+
+        // TODO: AudioFMRadioManager::updateFMRadioOutRouting
+        this.mDeviceBroker.modSamsungUpdateFmRadioPath(this.mForcedUseForFMRadio);
+    }
+
+    @Override
+    public int modSamsungGetRadioOutputPath() {
+        int i = this.mForcedUseForFMRadio;
+        if (i == 1) {
+            return 2;
+        }
+        if (i != 4) {
+            return 3;
+        }
+        if (this.mDeviceBroker.modSamsungCheckDeviceConnected(128)) {
+            return 8;
+        }
+        this.mForcedUseForFMRadio = 0;
+        return 3;
+    }
 
     private static final String TAG = "AS.AudioService";
 
@@ -634,6 +742,8 @@ public class AudioService extends IAudioService.Stub
         public void onBootPhase(int phase) {
             if (phase == SystemService.PHASE_ACTIVITY_MANAGER_READY) {
                 mService.systemReady();
+            } else if (phase == SystemService.PHASE_BOOT_COMPLETED) {
+                AudioSystem.setParameters("g_fmradio_enable=false");
             }
         }
     }

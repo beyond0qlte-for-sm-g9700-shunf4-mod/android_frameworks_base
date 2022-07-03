@@ -55,6 +55,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** @hide */
 /*package*/ final class AudioDeviceBroker {
 
+    public void modSamsungUpdateFmRadioPath(int path) {
+        synchronized (this.mDeviceStateLock) {
+            this.mDeviceInventory.modSamsungUpdateFmRadioPath(path);
+        }
+    }
+
+    public boolean modSamsungCheckDeviceConnected(int devices) {
+        boolean checkDeviceConnected;
+        synchronized (this.mDeviceStateLock) {
+            checkDeviceConnected = this.mDeviceInventory.modSamsungCheckDeviceConnected(devices);
+        }
+        return checkDeviceConnected;
+    }
+
+    public void modSamsungSetFmRadioPath(int path) {
+        synchronized (this.mDeviceStateLock) {
+            this.mAudioService.modSamsungSetRadioOutputPath(path);
+        }
+    }
+
     private static final String TAG = "AS.AudioDeviceBroker";
 
     private static final long BROKER_WAKELOCK_TIMEOUT_MS = 5000; //5s

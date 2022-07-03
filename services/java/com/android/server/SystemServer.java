@@ -1294,6 +1294,15 @@ public final class SystemServer {
             reportWtf("making display ready", e);
         }
         t.traceEnd();
+        
+        t.traceBegin("Add SEM_FM_RADIO_SERVICE / (Samsung) FMPlayer");
+        try {
+            ServiceManager.addService("FMPlayer", new com.android.server.FMRadioService(context));
+            Slog.i(TAG, "FMRadio service added..");
+        } catch (Throwable e) {
+            reportWtf("Failure starting (Samsung) FM Radio Service", e);
+        }
+        t.traceEnd();
 
         if (mFactoryTestMode != FactoryTest.FACTORY_TEST_LOW_LEVEL) {
             if (!"0".equals(SystemProperties.get("system_init.startmountservice"))) {

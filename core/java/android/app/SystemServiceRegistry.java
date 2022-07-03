@@ -210,6 +210,8 @@ import com.android.internal.os.IDropBoxManagerService;
 import com.android.internal.policy.PhoneLayoutInflater;
 import com.android.internal.util.Preconditions;
 
+import com.samsung.android.media.fmradio.SemFmPlayer;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -1198,6 +1200,15 @@ public final class SystemServiceRegistry {
                                 ctx.mMainThread.getHandler());
                     }
             });
+            
+        registerService("FMPlayer", SemFmPlayer.class, new CachedServiceFetcher<SemFmPlayer>() { // from class: android.app.SystemServiceRegistry.117
+            /* JADX WARN: Can't rename method to resolve collision */
+            @Override // android.app.SystemServiceRegistry.CachedServiceFetcher
+            public SemFmPlayer createService(ContextImpl ctx) {
+                return new SemFmPlayer(ctx);
+            }
+        });
+
 
         registerService(Context.TIME_DETECTOR_SERVICE, TimeDetector.class,
                 new CachedServiceFetcher<TimeDetector>() {

@@ -85,12 +85,85 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
-
 /**
  * AudioManager provides access to volume and ringer mode control.
  */
 @SystemService(Context.AUDIO_SERVICE)
 public class AudioManager {
+
+    public static final int MOD_RADIO_OUTPUT_PATH_IS_FMRADIO_ON = (1 << 18);
+
+    private android.media.AudioTrack mModDummyAudio = null;
+
+    public void modStartDummyAudio() {
+        int intSize = android.media.AudioTrack.getMinBufferSize(
+                48000, android.media.AudioFormat.CHANNEL_CONFIGURATION_STEREO,
+                  android.media.AudioFormat.ENCODING_PCM_16BIT);
+
+        mModDummyAudio = new android.media.AudioTrack(AudioManager.STREAM_MUSIC,
+                48000, android.media.AudioFormat.CHANNEL_CONFIGURATION_STEREO,
+                android.media.AudioFormat.ENCODING_PCM_16BIT, intSize*2,
+                android.media.AudioTrack.MODE_STREAM);
+
+        mModDummyAudio.play();
+    }
+
+    public void modStopDummyAudio() {
+        if (mModDummyAudio != null) {
+            mModDummyAudio.stop();
+            mModDummyAudio.release();
+            mModDummyAudio = null;
+        }
+    }
+
+    public static int modSamsungGetStreamType(int samsung_stream) {
+        switch (samsung_stream) {
+            case 1:
+                return 3;
+            case 2:
+                return 0;
+            case 3:
+            case 6:
+                return 11;
+            case 4:
+                return 6;
+            case 5:
+                return 7;
+            default:
+                return -1;
+        }
+    }
+
+    public boolean modSamsungSetRadioOutputPath(int path) {
+        IAudioService service = getService();
+
+        // if (mModDummyAudio != null) {
+        //     path = path | AudioManager.MOD_RADIO_OUTPUT_PATH_IS_FMRADIO_ON;
+        // }
+
+        int realPath = path & ~AudioManager.MOD_RADIO_OUTPUT_PATH_IS_FMRADIO_ON;
+
+        if (realPath == 0 || realPath == 2 || realPath == 3 || realPath == 8) {
+            try {
+                service.modSamsungSetRadioOutputPath(path);
+                return true;
+            } catch (RemoteException e) {
+                Log.e(TAG, "Dead object in AudioManager.modSamsungSetRadioOutputPath", e);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public int modSamsungGetRadioOutputPath() {
+        IAudioService service = getService();
+        try {
+            return service.modSamsungGetRadioOutputPath();
+        } catch (RemoteException e) {
+            Log.e(TAG, "Dead object in AudioManager.modSamsungGetRadioOutputPath", e);
+            return 0;
+        }
+    }
 
     private Context mOriginalContext;
     private Context mApplicationContext;
@@ -3307,12 +3380,20 @@ public class AudioManager {
         final BlockingFocusResultReceiver focusReceiver;
         synchronized (mFocusRequestsLock) {
             try {
+                boolean isFmRadioAttribute = afr.getAudioAttributes().getTags().contains("FM_RADIO");
+                String callingPackageName;
+                if (isFmRadioAttribute) {
+                    callingPackageName = "com.sec.android.app.fm.mod";
+                } else {
+                    callingPackageName = getContext().getOpPackageName();
+                }
+            
                 // TODO status contains result and generation counter for ext policy
                 status = service.requestAudioFocus(afr.getAudioAttributes(),
                         afr.getFocusGain(), mICallBack,
                         mAudioFocusDispatcher,
                         clientId,
-                        getContext().getOpPackageName() /* package name */, afr.getFlags(),
+                        callingPackageName, afr.getFlags(),
                         ap != null ? ap.cb() : null,
                         sdk);
             } catch (RemoteException e) {
