@@ -264,7 +264,8 @@ public class FMRadioService extends IFMPlayer.Stub {
     private PowerManager.WakeLock mWakeLock;
     private boolean mOnProgress = false;
     private boolean mOffProgress = false;
-    private boolean mIsHeadsetPlugged = false;
+    // shunf4 mod: mIsHeadsetPlugged is always true
+    private boolean mIsHeadsetPlugged = true;
     private boolean mIsMicrophoneConnected = false;
     private boolean mIsEarphoneConnected = false;
     private boolean mIsTvOutPlugged = false;
@@ -399,6 +400,9 @@ public class FMRadioService extends IFMPlayer.Stub {
                 }
                 FMRadioService.log("mReceiver: ACTION_USB_HEADSET");
                 FMRadioService.this.mIsHeadsetPlugged = intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+                // shunf4 mod: mIsHeadsetPlugged is always true
+                FMRadioService.this.mIsHeadsetPlugged = true;
+
                 if (!FMRadioService.this.mIsTestMode) {
                     if (!FMRadioService.this.mIsExternalChipset) {
                         if (!FMRadioService.this.mIsHeadsetPlugged) {
@@ -535,6 +539,8 @@ public class FMRadioService extends IFMPlayer.Stub {
                 }
                 FMRadioService fMRadioService5 = FMRadioService.this;
                 fMRadioService5.mIsHeadsetPlugged = fMRadioService5.mIsMicrophoneConnected || FMRadioService.this.mIsEarphoneConnected;
+                // shunf4 mod: mIsHeadsetPlugged is always true
+                FMRadioService.this.mIsHeadsetPlugged = true;
                 if (!FMRadioService.this.mIsTestMode) {
                     if (!FMRadioService.this.mIsHeadsetPlugged) {
                         int tvstatus2 = Settings.System.getInt(FMRadioService.this.mContext.getContentResolver(), "tv_out", 0);
