@@ -5143,12 +5143,28 @@ public class FMRadioService extends IFMPlayer.Stub {
             this.mAudioManager.modStartDummyAudio();
 
             this.mAudioManager.setParameters("l_fmradio_mode=on");
-            android.media.AudioSystem.setDeviceConnectionState(-2147475456, 1, "dummy", "", 0);
+            android.media.AudioSystem.setDeviceConnectionState(
+                new android.media.AudioDeviceAttributes(
+                    -2147475456,
+                    "dummy",
+                    ""
+                ),
+                1,
+                0
+            );
             this.mAudioManager.setParameters("l_fmradio_volume=0.1");
         } else {
             keyValuePairs = "g_fmradio_enable=false";
             this.mAudioManager.setParameters(keyValuePairs);
-            android.media.AudioSystem.setDeviceConnectionState(-2147475456, 0, "dummy", "", 0);
+            android.media.AudioSystem.setDeviceConnectionState(
+                new android.media.AudioDeviceAttributes(
+                    -2147475456,
+                    "dummy",
+                    ""
+                ),
+                0,
+                0
+            );
             this.mAudioManager.setParameters("l_fmradio_mode=off");
             this.mAudioManager.modStopDummyAudio();
             this.modSamsungSetRadioOutputPath(0);
